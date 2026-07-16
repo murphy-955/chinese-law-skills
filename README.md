@@ -26,7 +26,7 @@ chinese-law-skills/
 
 ## 脚本说明
 
-`chinese-lawyer/scripts/` 下的脚本用于抓取对应网站的**公开信息**，仅使用公开页面/接口，不处理登录、验证码与 Cookies。
+`chinese-lawyer/scripts/` 下的脚本用于抓取对应网站的**公开信息**。大部分脚本无需登录；需要登录的站点已实现通过统一认证入口登录，并支持 Session 复用。
 
 ### 已开发脚本（无需登录）
 
@@ -35,8 +35,13 @@ chinese-law-skills/
 | [中国执行信息公开网](https://zxgk.court.gov.cn/) | `zxgk_query.py` | 失信被执行人/被执行人/首页公告查询 |
 | [最高人民检察院官网](https://www.spp.gov.cn/) | `spp_news.py` | 新闻列表与正文抓取 |
 | [中华人民共和国最高人民法院](https://www.court.gov.cn/index.html) | `court_news.py` | 新闻列表与正文抓取 |
-| [人民法院案例库](https://rmfyalk.court.gov.cn/) | `rmfyalk_search.py` | 案例检索与详情获取 |
 | [中国法院网](https://www.chinacourt.cn/index.shtml) | `chinacourt_news.py` | 栏目新闻与正文抓取 |
+
+### 已开发脚本（支持登录）
+
+| 站点 | 脚本 | 功能 | 登录说明 |
+|------|------|------|----------|
+| [人民法院案例库](https://rmfyalk.court.gov.cn/) | `rmfyalk_search.py` | 案例检索与详情获取 | 通过 `account.court.gov.cn/api/login` 登录；支持环境变量、命令行或交互式输入密码；支持保存/加载 Session cookies |
 
 ### 跳过开发（需登录 / 强验证）
 
@@ -63,8 +68,14 @@ chinese-law-skills/
    # 抓取最高检新闻
    python spp_news.py --channel spp/zdgz --limit 10
 
-   # 人民法院案例库检索
+   # 人民法院案例库检索（未登录模式）
    python rmfyalk_search.py --keyword 合同纠纷 --page 1
+
+   # 人民法院案例库检索（登录模式，密码通过交互式输入）
+   python rmfyalk_search.py --username 13800138000 --keyword 合同纠纷 --save-session output/rmfyalk_session.json
+
+   # 复用已保存的 Session
+   python rmfyalk_search.py --load-session output/rmfyalk_session.json --keyword 合同纠纷
    ```
 
 3. 结果默认保存到 `scripts/output/` 目录下的 JSON 文件。
