@@ -37,11 +37,11 @@ chinese-law-skills/
 | [中华人民共和国最高人民法院](https://www.court.gov.cn/index.html) | `court_news.py` | 新闻列表与正文抓取 |
 | [中国法院网](https://www.chinacourt.cn/index.shtml) | `chinacourt_news.py` | 栏目新闻与正文抓取 |
 
-### 已开发脚本（支持登录）
+### 已开发脚本（Token 模式）
 
-| 站点 | 脚本 | 功能 | 登录说明 |
-|------|------|------|----------|
-| [人民法院案例库](https://rmfyalk.court.gov.cn/) | `rmfyalk_search.py` | 案例检索与详情获取 | 通过 `account.court.gov.cn/api/login` 登录；支持环境变量、命令行或交互式输入密码；支持保存/加载 Session cookies |
+| 站点 | 脚本 | 功能 | 说明 |
+|------|------|------|------|
+| [人民法院案例库](https://rmfyalk.court.gov.cn/) | `rmfyalk_search.py` | 案例检索与详情获取 | 需手动提供 `faxin-cpws-al-token`，通过 `--token` 或环境变量 `RMFYALK_TOKEN` 传入；暂不支持自动登录 |
 
 ### 跳过开发（需登录 / 强验证）
 
@@ -68,14 +68,11 @@ chinese-law-skills/
    # 抓取最高检新闻
    python spp_news.py --channel spp/zdgz --limit 10
 
-   # 人民法院案例库检索（未登录模式）
-   python rmfyalk_search.py --keyword 合同纠纷 --page 1
+   # 人民法院案例库检索（Token 模式）
+   python rmfyalk_search.py --token <faxin-cpws-al-token> --keyword 诈骗罪 --page 1
 
-   # 人民法院案例库检索（登录模式，密码通过交互式输入）
-   python rmfyalk_search.py --username 13800138000 --keyword 合同纠纷 --save-session output/rmfyalk_session.json
-
-   # 复用已保存的 Session
-   python rmfyalk_search.py --load-session output/rmfyalk_session.json --keyword 合同纠纷
+   # 人民法院案例库详情
+   python rmfyalk_search.py --token <faxin-cpws-al-token> --gid <gid>
    ```
 
 3. 结果默认保存到 `scripts/output/` 目录下的 JSON 文件。
