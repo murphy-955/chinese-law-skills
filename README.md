@@ -73,6 +73,12 @@ chinese-law-skills/
 
    # 人民法院案例库详情
    python rmfyalk_search.py --token <faxin-cpws-al-token> --gid <gid>
+
+   # 仅提取单条案例的注释/要旨信息
+   python rmfyalk_search.py --token <faxin-cpws-al-token> --gid <gid> --annotations-only
+
+   # 检索后批量提取注释/要旨信息
+   python rmfyalk_search.py --token <faxin-cpws-al-token> --keyword 诈骗罪 --annotations-only --size 5
    ```
 
 3. 结果默认保存到 `scripts/output/` 目录下的 JSON 文件。

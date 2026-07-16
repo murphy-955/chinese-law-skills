@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from bs4 import BeautifulSoup
 from utils import create_session, safe_request, save_json, sleep_seconds
 
 BASE_URL = "https://rmfyalk.court.gov.cn"
@@ -120,6 +121,40 @@ def fetch_case_detail(token: str, gid: str) -> Optional[Dict[str, Any]]:
         return {"raw_html_length": len(resp.text), "url": resp.url}
 
 
+def extract_annotations(detail_data: Dict[str, Any]) -> Dict[str, Any]:
+    """从详情接口返回中提取注释/要旨类信息。
+
+    对应接口.md 中的字段注释：
+        - 入库编号 cpws_al_no
+        - 一级标题 cpws_al_title
+        - 二级标题 cpws_al_sub_title
+        - 裁判要旨 cpws_al_cpyz
+        - 关键词   cpws_al_keyword
+        - 基本案情 cpws_al_jbaq
+        - 裁判理由 cpws_al_cply
+        - 关联索引 cpws_al_glsy
+    """
+    inner = detail_data.get("data", {}).get("data", {}) if isinstance(detail_data, dict) else {}
+
+    def _strip_html(value: Any) -> Any:
+        """去除 HTML 标签并清理空白。"""
+        if not isinstance(value, str):
+            return value
+        text = BeautifulSoup(value, "html.parser").get_text(separator="\n", strip=True)
+        return text
+
+    return {
+        "入库编号": inner.get("cpws_al_no", ""),
+        "一级标题": inner.get("cpws_al_title", ""),
+        "二级标题": inner.get("cpws_al_sub_title", ""),
+        "裁判要旨": _strip_html(inner.get("cpws_al_cpyz", "")),
+        "关键词": inner.get("cpws_al_keyword", []),
+        "基本案情": _strip_html(inner.get("cpws_al_jbaq", "")),
+        "裁判理由": _strip_html(inner.get("cpws_al_cply", "")),
+        "关联索引": _strip_html(inner.get("cpws_al_glsy", "")),
+    }
+
+
 def _read_token(args_token: str) -> str:
     """从命令行或环境变量读取 Token。"""
     token = (args_token or os.environ.get(ENV_TOKEN, "")).strip()
@@ -141,17 +176,21 @@ def main() -> None:
     parser.add_argument("--page", type=int, default=1, help="页码")
     parser.add_argument("--size", type=int, default=10, help="每页条数")
     parser.add_argument("--gid", default="", help="案例 gid，提供时获取详情")
+    parser.add_argument(
+        "--annotations-only",
+        action="store_true",
+        help="仅提取详情中的注释/要旨信息（需配合 --gid 或 --keyword 使用）",
+    )
     parser.add_argument("--output", type=Path, default=Path("output/rmfyalk_result.json"))
     args = parser.parse_args()
 
     token = _read_token(args.token)
 
     if args.gid:
-        result = fetch_case_detail(token, args.gid)
-    else:
-        if not args.keyword:
-            raise SystemExit("[ERROR] 检索模式必须提供 --keyword。")
-        result = search_cases(
+        detail = fetch_case_detail(token, args.gid)
+        result = extract_annotations(detail) if args.annotations_only else detail
+    elif args.keyword:
+        search_result = search_cases(
             token=token,
             keyword=args.keyword,
             search_type=args.search_type,
@@ -161,6 +200,32 @@ def main() -> None:
             page=args.page,
             size=args.size,
         )
+        if search_result is None:
+            print("[ERROR] 未获取到检索结果。")
+            return
+
+        if args.annotations_only:
+            # 对检索结果中的每条案例获取详情并提取注释
+            items = search_result.get("data", {}).get("datas", []) if isinstance(search_result, dict) else []
+            annotations: List[Dict[str, Any]] = []
+            for idx, item in enumerate(items, start=1):
+                gid = item.get("cpws_al_id") or item.get("id")
+                if not gid:
+                    continue
+                print(f"[INFO] 正在提取第 {idx}/{len(items)} 条案例注释：{item.get('cpws_al_title', '')}")
+                detail = fetch_case_detail(token, gid)
+                if detail is not None:
+                    annotations.append(extract_annotations(detail))
+                sleep_seconds(0.5)
+            result = {
+                "keyword": args.keyword,
+                "total": len(annotations),
+                "annotations": annotations,
+            }
+        else:
+            result = search_result
+    else:
+        raise SystemExit("[ERROR] 必须提供 --gid 或 --keyword。")
 
     if result is not None:
         save_json(result, args.output)
