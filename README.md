@@ -37,11 +37,11 @@ chinese-law-skills/
 | [中华人民共和国最高人民法院](https://www.court.gov.cn/index.html) | `court_news.py` | 新闻列表与正文抓取 |
 | [中国法院网](https://www.chinacourt.cn/index.shtml) | `chinacourt_news.py` | 栏目新闻与正文抓取 |
 
-### 已开发脚本（Token 模式）
+### 已开发脚本（浏览器自动化登录）
 
 | 站点 | 脚本 | 功能 | 说明 |
 |------|------|------|------|
-| [人民法院案例库](https://rmfyalk.court.gov.cn/) | `rmfyalk_search.py` | 案例检索与详情获取 | 需手动提供 `faxin-cpws-al-token`，通过 `--token` 或环境变量 `RMFYALK_TOKEN` 传入；暂不支持自动登录 |
+| [人民法院案例库](https://rmfyalk.court.gov.cn/) | `rmfyalk_search.py` | 案例检索与详情获取 | 使用 Playwright 打开真实浏览器完成登录，支持账号密码、支付宝、短信等任意登录方式；登录后自动提取并缓存 Token |
 
 ### 跳过开发（需登录 / 强验证）
 
@@ -57,6 +57,7 @@ chinese-law-skills/
    ```bash
    cd chinese-lawyer/scripts
    pip install -r requirements.txt
+   playwright install chromium
    ```
 
 2. 运行示例：
@@ -68,17 +69,20 @@ chinese-law-skills/
    # 抓取最高检新闻
    python spp_news.py --channel spp/zdgz --limit 10
 
-   # 人民法院案例库检索（Token 模式）
-   python rmfyalk_search.py --token <faxin-cpws-al-token> --keyword 诈骗罪 --page 1
+   # 首次：打开浏览器登录（支持账号密码/支付宝/短信），登录成功后自动保存 Token
+   python rmfyalk_search.py --login-browser --keyword 诈骗罪
 
-   # 人民法院案例库详情
-   python rmfyalk_search.py --token <faxin-cpws-al-token> --gid <gid>
+   # 后续：复用已保存的 Token（4 小时内有效）
+   python rmfyalk_search.py --keyword 诈骗罪
+
+   # 使用已有 Token
+   python rmfyalk_search.py --token <faxin-cpws-al-token> --keyword 诈骗罪
 
    # 仅提取单条案例的注释/要旨信息
-   python rmfyalk_search.py --token <faxin-cpws-al-token> --gid <gid> --annotations-only
+   python rmfyalk_search.py --gid <gid> --annotations-only
 
    # 检索后批量提取注释/要旨信息
-   python rmfyalk_search.py --token <faxin-cpws-al-token> --keyword 诈骗罪 --annotations-only --size 5
+   python rmfyalk_search.py --keyword 诈骗罪 --annotations-only --size 5
    ```
 
 3. 结果默认保存到 `scripts/output/` 目录下的 JSON 文件。
