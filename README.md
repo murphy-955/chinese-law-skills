@@ -15,40 +15,24 @@ chinese-law-skills/
     │   ├── legal-documents.md      # 法律文书模板
     │   ├── legal-research.md       # 法规与案例检索
     │   └── litigation.md           # 庭审与证据
-    └── scripts/                    # 站点公开数据抓取脚本
+    └── scripts/                    # 脚本
         ├── utils.py                # 公共 HTTP/工具函数
-        ├── zxgk_query.py           # 中国执行信息公开网
-        ├── spp_news.py             # 最高人民检察院官网
-        ├── court_news.py           # 最高人民法院官网
-        ├── rmfyalk_search.py       # 人民法院案例库
-        └── chinacourt_news.py      # 中国法院网
+        ├── rmfyalk_search.py       # 人民法院案例库检索与详情获取
+        └── requirements.txt        # Python 依赖
 ```
 
 ## 脚本说明
 
-`chinese-lawyer/scripts/` 下的脚本用于抓取对应网站的**公开信息**。大部分脚本无需登录；需要登录的站点已实现通过统一认证入口登录，并支持 Session 复用。
+`chinese-lawyer/scripts/rmfyalk_search.py` 用于调用人民法院案例库（rmfyalk.court.gov.cn）的公开接口，支持案例检索、详情获取以及注释/要旨信息提取。
 
-### 已开发脚本（无需登录）
+### 登录方式
 
-| 站点 | 脚本 | 功能 |
-|------|------|------|
-| [中国执行信息公开网](https://zxgk.court.gov.cn/) | `zxgk_query.py` | 失信被执行人/被执行人/首页公告查询 |
-| [最高人民检察院官网](https://www.spp.gov.cn/) | `spp_news.py` | 新闻列表与正文抓取 |
-| [中华人民共和国最高人民法院](https://www.court.gov.cn/index.html) | `court_news.py` | 新闻列表与正文抓取 |
-| [中国法院网](https://www.chinacourt.cn/index.shtml) | `chinacourt_news.py` | 栏目新闻与正文抓取 |
+由于人民法院案例库的检索/详情接口需要登录态，脚本提供两种获取 Token 的方式：
 
-### 已开发脚本（浏览器自动化登录）
+1. **浏览器自动化登录（推荐）**：使用 Playwright 打开真实浏览器，用户可自行选择账号密码、支付宝、短信等方式完成登录；登录成功后脚本自动从 Cookie 中提取 `faxin-cpws-al-token` 并缓存。
+2. **手动传入 Token**：用户从浏览器开发者工具中复制 `faxin-cpws-al-token`，通过 `--token` 或环境变量 `RMFYALK_TOKEN` 传入。
 
-| 站点 | 脚本 | 功能 | 说明 |
-|------|------|------|------|
-| [人民法院案例库](https://rmfyalk.court.gov.cn/) | `rmfyalk_search.py` | 案例检索与详情获取 | 使用 Playwright 打开真实浏览器完成登录，支持账号密码、支付宝、短信等任意登录方式；登录后自动提取并缓存 Token |
-
-### 跳过开发（需登录 / 强验证）
-
-| 站点 | 原因 |
-|------|------|
-| [人民法院在线服务网](https://zxfw.court.gov.cn/zxfw/index.html#/pagesGrxx/pc/login/index) | 入口即登录页，必须账号/实名认证 |
-| [中国裁判文书网](https://wenshu.court.gov.cn/) | 检索与下载文书需登录，且存在验证码/反爬验证 |
+Token 有效期约为 4 小时，脚本会自动解析 JWT 的 `exp` 字段，在过期前提示重新登录。
 
 ### 使用方式
 
@@ -63,12 +47,6 @@ chinese-law-skills/
 2. 运行示例：
 
    ```bash
-   # 查询失信被执行人
-   python zxgk_query.py --name 张三 --type dishonesty
-
-   # 抓取最高检新闻
-   python spp_news.py --channel spp/zdgz --limit 10
-
    # 首次：打开浏览器登录（支持账号密码/支付宝/短信），登录成功后自动保存 Token
    python rmfyalk_search.py --login-browser --keyword 诈骗罪
 
@@ -78,7 +56,10 @@ chinese-law-skills/
    # 使用已有 Token
    python rmfyalk_search.py --token <faxin-cpws-al-token> --keyword 诈骗罪
 
-   # 仅提取单条案例的注释/要旨信息
+   # 获取案例详情
+   python rmfyalk_search.py --gid <gid>
+
+   # 仅提取注释/要旨信息
    python rmfyalk_search.py --gid <gid> --annotations-only
 
    # 检索后批量提取注释/要旨信息
@@ -99,4 +80,4 @@ chinese-law-skills/
 - 遵循 Kimi Skill 规范：skill 目录内仅保留 `SKILL.md` 及必要的 `references/`、`scripts/`、`assets/` 资源。
 - 参考资料按需加载，避免一次塞入过多上下文。
 - 内容聚焦中国法律实务，持续迭代补充。
-- 脚本仅访问公开数据，遵守各站点 robots 与访问频率限制。
+- 脚本仅访问人民法院案例库公开接口，遵守网站访问频率限制。
