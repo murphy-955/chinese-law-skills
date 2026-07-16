@@ -93,3 +93,14 @@ fabric.properties
 
 /.idea/
 /chinese-law-skills.iml
+
+# Python virtual environment
+.venv/
+venv/
+ENV/
+
+# Script outputs
+chinese-lawyer/scripts/output/
+output/
+__pycache__/
+*.pyc
